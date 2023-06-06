@@ -18,7 +18,7 @@ import {
   LangChainTracer,
   LangChainTracerFields,
 } from "./handlers/tracer_langchain.js";
-import { Serialized } from "../schema/load.js";
+import { Serialized } from "../load/serializable.js";
 
 type BaseCallbackManagerMethods = {
   [K in keyof CallbackHandlerMethods]?: (
