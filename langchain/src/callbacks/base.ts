@@ -26,7 +26,8 @@ abstract class BaseCallbackHandlerMethodsClass {
     prompts: string[],
     runId: string,
     parentRunId?: string,
-    extraParams?: Record<string, unknown>
+    extraParams?: Record<string, unknown>,
+    tags?: string[]
   ): Promise<void> | void;
 
   /**
@@ -65,7 +66,8 @@ abstract class BaseCallbackHandlerMethodsClass {
     messages: BaseChatMessage[][],
     runId: string,
     parentRunId?: string,
-    extraParams?: Record<string, unknown>
+    extraParams?: Record<string, unknown>,
+    tags?: string[]
   ): Promise<void> | void;
 
   /**
@@ -76,7 +78,8 @@ abstract class BaseCallbackHandlerMethodsClass {
     chain: { name: string },
     inputs: ChainValues,
     runId: string,
-    parentRunId?: string
+    parentRunId?: string,
+    tags?: string[]
   ): Promise<void> | void;
 
   /**
@@ -105,7 +108,8 @@ abstract class BaseCallbackHandlerMethodsClass {
     tool: { name: string },
     input: string,
     runId: string,
-    parentRunId?: string
+    parentRunId?: string,
+    tags?: string[]
   ): Promise<void> | void;
 
   /**

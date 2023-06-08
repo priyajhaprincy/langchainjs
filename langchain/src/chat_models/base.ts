@@ -70,6 +70,8 @@ export abstract class BaseChatModel extends BaseLanguageModel {
     const callbackManager_ = await CallbackManager.configure(
       callbacks,
       this.callbacks,
+      parsedOptions.tags,
+      this.tags,
       { verbose: this.verbose }
     );
     const invocationParams = { invocation_params: this?.invocationParams() };

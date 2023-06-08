@@ -9,6 +9,12 @@ import { Calculator } from "../../tools/calculator.js";
 import { initializeAgentExecutorWithOptions } from "../../agents/initialize.js";
 import { HumanChatMessage } from "../../schema/index.js";
 import { ChatOpenAI } from "../../chat_models/openai.js";
+import {
+  ConstitutionalChain,
+  ConstitutionalPrinciple,
+  LLMChain,
+} from "../../chains/index.js";
+import { PromptTemplate } from "../../prompts/prompt.js";
 
 test("Test LangChain V2 tracer", async () => {
   const tracer = new LangChainTracer({
@@ -42,6 +48,38 @@ test("Test LangChain V2 tracer", async () => {
   const llmRunId3 = uuid.v4();
   await tracer.handleLLMStart({ name: "test" }, ["test"], llmRunId3);
   await tracer.handleLLMEnd({ generations: [[]] }, llmRunId3);
+});
+
+test("Test traced chain with tags", async () => {
+  const llm = new OpenAI();
+  const qaPrompt = new PromptTemplate({
+    template: "Q: {question} A:",
+    inputVariables: ["question"],
+  });
+
+  const qaChain = new LLMChain({
+    llm,
+    prompt: qaPrompt,
+  });
+
+  const constitutionalChain = ConstitutionalChain.fromLLM(llm, {
+    tags: ["only-in-root-chain"],
+    chain: qaChain,
+    constitutionalPrinciples: [
+      new ConstitutionalPrinciple({
+        critiqueRequest: "Tell me if this answer is good.",
+        revisionRequest: "Give a better answer.",
+      }),
+    ],
+  });
+
+  await constitutionalChain.call(
+    {
+      question: "What is the meaning of life?",
+    },
+    [new LangChainTracer()],
+    ["test-for-tags"]
+  );
 });
 
 test("Test Traced Agent with concurrency", async () => {

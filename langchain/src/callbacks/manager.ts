@@ -52,6 +52,8 @@ class BaseRunManager {
     public readonly runId: string,
     protected readonly handlers: BaseCallbackHandler[],
     protected readonly inheritableHandlers: BaseCallbackHandler[],
+    protected readonly tags: string[],
+    protected readonly inheritableTags: string[],
     protected readonly _parentRunId?: string
   ) {}
 
@@ -147,10 +149,14 @@ export class CallbackManagerForChainRun
   extends BaseRunManager
   implements BaseCallbackManagerMethods
 {
-  getChild(): CallbackManager {
+  getChild(tag?: string): CallbackManager {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const manager = new CallbackManager(this.runId);
     manager.setHandlers(this.inheritableHandlers);
+    manager.addTags(this.inheritableTags);
+    if (tag) {
+      manager.addTags([tag], false);
+    }
     return manager;
   }
 
@@ -247,10 +253,14 @@ export class CallbackManagerForToolRun
   extends BaseRunManager
   implements BaseCallbackManagerMethods
 {
-  getChild(): CallbackManager {
+  getChild(tag?: string): CallbackManager {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const manager = new CallbackManager(this.runId);
     manager.setHandlers(this.inheritableHandlers);
+    manager.addTags(this.inheritableTags);
+    if (tag) {
+      manager.addTags([tag], false);
+    }
     return manager;
   }
 
@@ -307,6 +317,10 @@ export class CallbackManager
 
   inheritableHandlers: BaseCallbackHandler[];
 
+  tags: string[] = [];
+
+  inheritableTags: string[] = [];
+
   name = "callback_manager";
 
   private readonly _parentRunId?: string;
@@ -335,7 +349,8 @@ export class CallbackManager
                 prompts,
                 runId,
                 this._parentRunId,
-                extraParams
+                extraParams,
+                this.tags
               );
             } catch (err) {
               console.error(
@@ -350,6 +365,8 @@ export class CallbackManager
       runId,
       this.handlers,
       this.inheritableHandlers,
+      this.tags,
+      this.inheritableTags,
       this._parentRunId
     );
   }
@@ -373,7 +390,8 @@ export class CallbackManager
                   messages,
                   runId,
                   this._parentRunId,
-                  extraParams
+                  extraParams,
+                  this.tags
                 );
               else if (handler.handleLLMStart) {
                 messageStrings = messages.map((x) => getBufferString(x));
@@ -382,7 +400,8 @@ export class CallbackManager
                   messageStrings,
                   runId,
                   this._parentRunId,
-                  extraParams
+                  extraParams,
+                  this.tags
                 );
               }
             } catch (err) {
@@ -398,6 +417,8 @@ export class CallbackManager
       runId,
       this.handlers,
       this.inheritableHandlers,
+      this.tags,
+      this.inheritableTags,
       this._parentRunId
     );
   }
@@ -416,7 +437,8 @@ export class CallbackManager
                 chain,
                 inputs,
                 runId,
-                this._parentRunId
+                this._parentRunId,
+                this.tags
               );
             } catch (err) {
               console.error(
@@ -431,6 +453,8 @@ export class CallbackManager
       runId,
       this.handlers,
       this.inheritableHandlers,
+      this.tags,
+      this.inheritableTags,
       this._parentRunId
     );
   }
@@ -449,7 +473,8 @@ export class CallbackManager
                 tool,
                 input,
                 runId,
-                this._parentRunId
+                this._parentRunId,
+                this.tags
               );
             } catch (err) {
               console.error(
@@ -464,6 +489,8 @@ export class CallbackManager
       runId,
       this.handlers,
       this.inheritableHandlers,
+      this.tags,
+      this.inheritableTags,
       this._parentRunId
     );
   }
@@ -490,6 +517,21 @@ export class CallbackManager
     }
   }
 
+  addTags(tags: string[], inherit = true): void {
+    this.removeTags(tags); // Remove duplicates
+    this.tags.push(...tags);
+    if (inherit) {
+      this.inheritableTags.push(...tags);
+    }
+  }
+
+  removeTags(tags: string[]): void {
+    this.tags = this.tags.filter((tag) => !tags.includes(tag));
+    this.inheritableTags = this.inheritableTags.filter(
+      (tag) => !tags.includes(tag)
+    );
+  }
+
   copy(
     additionalHandlers: BaseCallbackHandler[] = [],
     inherit = true
@@ -498,6 +540,10 @@ export class CallbackManager
     for (const handler of this.handlers) {
       const inheritable = this.inheritableHandlers.includes(handler);
       manager.addHandler(handler, inheritable);
+    }
+    for (const tag of this.tags) {
+      const inheritable = this.inheritableTags.includes(tag);
+      manager.addTags([tag], inheritable);
     }
     for (const handler of additionalHandlers) {
       if (
@@ -531,6 +577,8 @@ export class CallbackManager
   static async configure(
     inheritableHandlers?: Callbacks,
     localHandlers?: Callbacks,
+    inheritableTags?: string[],
+    localTags?: string[],
     options?: CallbackManagerOptions
   ): Promise<CallbackManager | undefined> {
     let callbackManager: CallbackManager | undefined;
@@ -550,6 +598,12 @@ export class CallbackManager
           : localHandlers?.handlers,
         false
       );
+    }
+    if (inheritableTags || localTags) {
+      if (callbackManager) {
+        callbackManager.addTags(inheritableTags ?? []);
+        callbackManager.addTags(localTags ?? [], false);
+      }
     }
     const verboseEnabled =
       getEnvironmentVariable("LANGCHAIN_VERBOSE") || options?.verbose;
